@@ -1,7 +1,7 @@
 # java-httplient-18k
 a simple httpclient,only 18k size
 #使用示例
-## http get 方法使用示例
+## http post 方法使用示例
 ```java
 BasicHttpClient httpClient = new BasicHttpClient();
 HttpRequestParameter requestParameter = new HttpRequestParameter();
@@ -27,3 +27,29 @@ try {
 }finally{
 	httpClient.close();//如果是长连接，可以重用BasicHttpClient
 }
+```
+## http get 方法使用示例
+```java
+BasicHttpClient httpClient = new BasicHttpClient();
+HttpRequestParameter requestParameter = new HttpRequestParameter();
+requestParameter.setMethod(HttpRequestParameter.METHOD_GET);
+requestParameter.setUrl("http://g.alicdn.com/tbc/webww/1.1.7/tstart-min.css");
+try {
+	HttpResponseResult  response = httpClient.execute(requestParameter);
+	//获得结果
+	System.out.println("========result:===========" + response.getHttpResponseBody());
+	
+	response = httpClient.execute(requestParameter);
+	//获得结果
+	System.out.println("========result:===========" + response.getHttpResponseBody());
+	
+} catch (UnsupportedEncodingException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+} catch (IOException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+}finally{
+	httpClient.close();
+}
+```
