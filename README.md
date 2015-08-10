@@ -1,5 +1,5 @@
 # java-httplient-18k
-a simple httpclient,only 18k size
+a simple httpclient writed in java,only 18k size
 #使用示例
 ## http post 方法使用示例
 ```java
