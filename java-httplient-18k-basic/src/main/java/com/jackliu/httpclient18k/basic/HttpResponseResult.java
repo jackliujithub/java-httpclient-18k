@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.jackliu.httpclient18k.basic.util.GzipDecompress;
+
 public class HttpResponseResult {
 	
 	/**http response header 字段*/
@@ -20,6 +22,9 @@ public class HttpResponseResult {
 	private ByteBuffer bodyInBytes = null;
 	
 	private String bodyStr = null;
+	
+	/**内容压缩*/
+	private static final String GZIP_ENCODING = "gzip";
 	
 	public String getHeader(String key){
 		return getHeaders().get(key);
@@ -42,15 +47,23 @@ public class HttpResponseResult {
 	}
 	
 	public String getHttpResponseBody() throws UnsupportedEncodingException{
-		if(bodyStr == null){
-			bodyStr = new String(bodyInBytes.array(),"utf-8");
-		}
-		return bodyStr;
+		return getHttpResponseBody("utf-8");
 	}
 	
 	
 	public String getHttpResponseBody(String charset) throws UnsupportedEncodingException{
 		if(bodyStr == null){
+			String ContentEncoding = getHeader("Content-Encoding");
+			if(ContentEncoding != null && GZIP_ENCODING.equals(ContentEncoding)){
+				try {
+					byte[] decompressBody = GzipDecompress.decompress(bodyInBytes.array());
+					bodyStr = new String(decompressBody,charset);
+					return bodyStr;
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
 			bodyStr = new String(bodyInBytes.array(),charset);
 		}
 		return this.bodyStr; 

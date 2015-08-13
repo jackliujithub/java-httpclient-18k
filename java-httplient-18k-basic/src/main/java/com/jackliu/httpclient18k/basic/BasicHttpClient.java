@@ -435,19 +435,22 @@ public class BasicHttpClient {
 	 * 长连接请求
 	 */
 	public static void testGetExecte(){
+		long start = System.currentTimeMillis();
 		BasicHttpClient httpClient = new BasicHttpClient();
 		HttpRequestParameter requestParameter = new HttpRequestParameter();
 		requestParameter.setMethod(HttpRequestParameter.METHOD_GET);
 		requestParameter.setUrl("http://g.alicdn.com/tbc/webww/1.1.7/tstart-min.css");
 		try {
+			//requestParameter.addHeader("Accept-Encoding", "gzip, deflate");
 			HttpResponseResult  response = httpClient.execute(requestParameter);
 			//获得结果
 			System.out.println("========result:===========" + response.getHttpResponseBody());
 			
+			/**http 长连接测试
 			response = httpClient.execute(requestParameter);
 			//获得结果
 			System.out.println("========result:===========" + response.getHttpResponseBody());
-			
+			**/
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -457,5 +460,6 @@ public class BasicHttpClient {
 		}finally{
 			httpClient.close();
 		}
+		System.out.println("cast:" + (System.currentTimeMillis() - start));
 	}
 }
