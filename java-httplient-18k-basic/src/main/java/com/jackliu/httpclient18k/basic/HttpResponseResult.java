@@ -47,7 +47,7 @@ public class HttpResponseResult {
 	}
 	
 	public String getHttpResponseBody() throws UnsupportedEncodingException{
-		return getHttpResponseBody("utf-8");
+		return getHttpResponseBody(getResponseCharset());
 	}
 	
 	
@@ -80,7 +80,7 @@ public class HttpResponseResult {
 	}
 	
 	public void printHttpHeader(){
-		System.out.println("============print header begin:");
+		//System.out.println("============print header begin:");
 		for(String head:headers){
 			System.out.println(head);
 			int length = head.indexOf(":");
@@ -96,7 +96,11 @@ public class HttpResponseResult {
 	public void addHeader(String headerStr) {
 		this.headers.add(headerStr);
 	}
-
+	
+	/**
+	 * 添加http response body数据到缓存byte
+	 * @param chunkData
+	 */
 	public void addBodyBytes(byte[] chunkData) {
 		if(bodyInBytes == null){
 			bodyInBytes = ByteBuffer.wrap(chunkData);
@@ -106,6 +110,29 @@ public class HttpResponseResult {
 		newBodyInBytes.put(bodyInBytes);
 		newBodyInBytes.put(chunkData);
 		bodyInBytes = newBodyInBytes;
-		
+	}
+	
+	/**
+	 * 获得服务端应答中的charset，如果没有返回默认的编码utf-8
+	 * TODO 没考虑vary
+	 * @return
+	 */
+	private String getResponseCharset(){
+		String defaultCharset = "utf-8";
+		String contentType = headerMap.get("Content-Type");
+		if(null == contentType || contentType.trim().length() < 1){
+			return defaultCharset;
+		}
+		String charsetStr = "charset=";
+		int startcharsetPosition = contentType.indexOf(charsetStr);
+		if(startcharsetPosition < 1){
+			return defaultCharset;
+		}
+		int endcharsetPosition = contentType.indexOf(";", startcharsetPosition);
+		if(endcharsetPosition < 1){
+			endcharsetPosition = contentType.length();
+		}
+		String charset = contentType.substring(startcharsetPosition+charsetStr.length(), endcharsetPosition);
+		return charset;
 	}
 }

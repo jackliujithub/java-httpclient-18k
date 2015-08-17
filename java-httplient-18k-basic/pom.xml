@@ -14,7 +14,11 @@
     <artifactId>java-httplient-18k-basic</artifactId>
     <packaging>jar</packaging>
    <dependencies>
-	
+		<!-- 单元测试 -->
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+			</dependency>
     </dependencies>
    
     

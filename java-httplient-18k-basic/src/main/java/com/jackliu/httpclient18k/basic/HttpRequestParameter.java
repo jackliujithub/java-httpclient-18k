@@ -2,11 +2,14 @@ package com.jackliu.httpclient18k.basic;
 
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
+import com.jackliu.httpclient18k.basic.util.NameValuePair;
 
 public class HttpRequestParameter {
 
@@ -24,13 +27,15 @@ public class HttpRequestParameter {
 	private static String sperator = "\r\n";
 	
 	/**GET,POST,DELETE,PUT等*/
-	private String method;
+	private String method = "POST";
 	
 	/**http header字段*/
 	private Map<String, String> headerMap = new HashMap<String, String>();
 	
-	/**http body String*/
+	/**http body String
 	private String HttpBodyString;
+	*/
+	private List<NameValuePair> params = new LinkedList<NameValuePair>();
 	
 	/**bodyString charset*/
 	private String bodyStringCharSet = "utf-8";
@@ -46,6 +51,14 @@ public class HttpRequestParameter {
 	/**相对uri*/
 	private String uri;
 	
+	/**连接超时时间，默认为5秒*/
+	private int connectionTimeOut = 5000;
+	
+	/**客户端读流的超时时间，默认为5秒*/
+	private int readTimeOut = 5000;
+	
+	private String HttpBodyString;
+	
 	/**
 	 * 构建http 请求报文
 	 * @return
@@ -57,7 +70,9 @@ public class HttpRequestParameter {
 		sb.append(getMethod() + " " + getUri() + " " + HTTP_VERSION + sperator);
 		handerHeaders(sb);
 		byte[] httpPackage = null;
-		byte[] headers = sb.toString().getBytes("utf-8");
+		//TODO 使用默认的ios-8859-1编码
+		byte[] headers = sb.toString().getBytes();
+		
 		if(bodyBytes != null && bodyBytes.length > 0){
 			httpPackage = new byte[headers.length + bodyBytes.length];
 			System.arraycopy(headers, 0, httpPackage, 0, headers.length);
@@ -87,6 +102,61 @@ public class HttpRequestParameter {
 	}
 
 
+	private String getHttpBodyString() {
+		if(method.equalsIgnoreCase("POST")){
+			return buildPostParameters();
+		}
+		return null;
+	}
+
+	private String buildPostParameters() {
+		if(this.HttpBodyString != null && this.HttpBodyString.trim().length() > 0){
+			return this.HttpBodyString;
+		}
+		if(getParams().size() < 1){
+			return null;
+		}
+		StringBuilder uri = new StringBuilder();
+		boolean first = true;
+		for(NameValuePair nameValuePair : getParams()){
+			if(!first){
+				uri.append("&");
+			}
+			first = false;
+			uri.append(nameValuePair.getKey()).append("=").append(nameValuePair.getValue());
+		}
+		this.HttpBodyString =  uri.toString();
+		
+		return HttpBodyString;
+	}
+
+
+	/***
+	 * 构建get 请求参数
+	 * @return
+	 */
+	private String buildGETParameters() {
+		
+		if(!method.equalsIgnoreCase("GET")){ //GET方法需要对参数值进行编码
+			return null;
+		}
+		
+		if(getParams().size() < 1){
+			return null;
+		}
+		StringBuilder uri = new StringBuilder("?");
+		boolean first = true;
+		for(NameValuePair nameValuePair : getParams()){
+			if(!first){
+				uri.append("&");
+			}
+			first = false;
+			uri.append(nameValuePair.getKey()).append("=").append(nameValuePair.getValue());
+		}
+		return uri.toString();
+	}
+
+
 	public void handerlURL() throws UnsupportedEncodingException {
 		if(getUrl() == null || getUrl().trim().length() < 1){
 			throw new RuntimeException("url为空");
@@ -106,6 +176,11 @@ public class HttpRequestParameter {
 			host = hostStr;
 		}
 		uri = urlString.substring(start, urlString.length());
+		
+		String urlPath = buildGETParameters();
+		if(null != urlPath && urlPath.trim().length() > 0){
+			uri = uri + urlPath;
+		}		
 	}
 	
 	public String getHost(){
@@ -151,13 +226,32 @@ public class HttpRequestParameter {
 	}
 
 
-	public String getHttpBodyString() {
-		return HttpBodyString;
+	public int getConnectionTimeOut() {
+		return this.connectionTimeOut;
 	}
 
 
-	public void setHttpBodyString(String httpBodyString) {
-		HttpBodyString = httpBodyString;
+	public void setConnectionTimeOut(int connectionTimeOut) {
+		this.connectionTimeOut = connectionTimeOut;
 	}
-	
+
+
+	public int getReadTimeOut() {
+		return readTimeOut;
+	}
+
+
+	public void setReadTimeOut(int readTimeOut) {
+		this.readTimeOut = readTimeOut;
+	}
+
+
+	public List<NameValuePair> getParams() {
+		return params;
+	}
+
+
+	public void setParams(List<NameValuePair> params) {
+		this.params = params;
+	}
 }

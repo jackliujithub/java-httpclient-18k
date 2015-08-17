@@ -26,8 +26,6 @@ public class BasicHttpClient {
 	/**上一次解析的两个字符是CRLF，true表示是，false表示不是*/
 	private boolean lastCRLF;
 	
-	
-	
 	/**body 解析完了吗？*/
 	private boolean bodyParseOver = false;
 		
@@ -324,7 +322,9 @@ public class BasicHttpClient {
 	public Socket getSocket(HttpRequestParameter requestParameter){
 		Socket socket = new Socket();
 		try {
-			socket.connect(new InetSocketAddress(requestParameter.getHost(),requestParameter.getPort()), 5000);
+			socket.connect(new InetSocketAddress(requestParameter.getHost(),requestParameter.getPort()), requestParameter.getConnectionTimeOut());
+			socket.setTcpNoDelay(true);
+			socket.setSoTimeout(requestParameter.getReadTimeOut());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -398,68 +398,5 @@ public class BasicHttpClient {
 				e.printStackTrace();
 			}
 		}
-	}
-	
-	public static void main(String[] args) throws Exception {
-		testGetExecte();
-	}
-	
-	public static void testPostExecte(){
-		BasicHttpClient httpClient = new BasicHttpClient();
-		HttpRequestParameter requestParameter = new HttpRequestParameter();
-		//设置请求方法
-		requestParameter.setMethod("POST");
-		//设置url
-		requestParameter.setUrl("http://192.168.192.113:8085/getToken");
-		//添加http 头部
-		requestParameter.addHeader("Content-Type", "application/x-www-form-urlencoded");
-		//post 方法添加http body
-		String body = "accessKey=65989asdf8989e9&hardPlatform=Iphone6%2C1&utcDate=2015-08-03T14%3A55%3A56.422Z&method=post";
-		requestParameter.setHttpBodyString(body);
-		try {
-			HttpResponseResult  response = httpClient.execute(requestParameter);
-			//获得结果
-			System.out.println("========result:===========" + response.getHttpResponseBody());
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}finally{
-			httpClient.close();//如果是长连接，可以重用BasicHttpClient
-		}
-	}
-	
-	/***
-	 * 长连接请求
-	 */
-	public static void testGetExecte(){
-		long start = System.currentTimeMillis();
-		BasicHttpClient httpClient = new BasicHttpClient();
-		HttpRequestParameter requestParameter = new HttpRequestParameter();
-		requestParameter.setMethod(HttpRequestParameter.METHOD_GET);
-		requestParameter.setUrl("http://g.alicdn.com/tbc/webww/1.1.7/tstart-min.css");
-		try {
-			//requestParameter.addHeader("Accept-Encoding", "gzip, deflate");
-			HttpResponseResult  response = httpClient.execute(requestParameter);
-			//获得结果
-			System.out.println("========result:===========" + response.getHttpResponseBody());
-			
-			/**http 长连接测试
-			response = httpClient.execute(requestParameter);
-			//获得结果
-			System.out.println("========result:===========" + response.getHttpResponseBody());
-			**/
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}finally{
-			httpClient.close();
-		}
-		System.out.println("cast:" + (System.currentTimeMillis() - start));
 	}
 }
