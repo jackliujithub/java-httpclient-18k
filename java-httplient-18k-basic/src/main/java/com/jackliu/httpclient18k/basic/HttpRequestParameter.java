@@ -26,7 +26,9 @@ public class HttpRequestParameter {
 	/**换行分隔符*/
 	private static String sperator = "\r\n";
 	
-	/**GET,POST,DELETE,PUT等*/
+	/**GET,POST,DELETE,PUT等
+	 * 默认为POST请求
+	 * */
 	private String method = "POST";
 	
 	/**http header字段*/

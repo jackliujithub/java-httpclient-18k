@@ -7,6 +7,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+import com.jackliu.httpclient18k.basic.async.CallBack;
+
 
 public class BasicHttpClient {
 	
@@ -24,7 +26,7 @@ public class BasicHttpClient {
 	private OutputStream outputStream;
 	
 	/**上一次解析的两个字符是CRLF，true表示是，false表示不是*/
-	private boolean lastCRLF;
+	private boolean lastCRLF = false;
 	
 	/**body 解析完了吗？*/
 	private boolean bodyParseOver = false;
@@ -358,11 +360,13 @@ public class BasicHttpClient {
 	
 	
 	public HttpResponseResult execute(HttpRequestParameter requestParameter) throws UnsupportedEncodingException, IOException {
-		this.responseResult = new HttpResponseResult();
+		init();
 		byte[] requestPackage = requestParameter.bulidRequestPackage();
-		this.socket = getSocket(requestParameter);
-		socket.setKeepAlive(true);
-		socket.setTcpNoDelay(true);
+		if(this.socket == null){
+			this.socket = getSocket(requestParameter);
+			socket.setKeepAlive(true);
+			socket.setTcpNoDelay(true);
+		}
 		outputStream = socket.getOutputStream();
 		outputStream.write(requestPackage);
 		outputStream.flush();
@@ -371,6 +375,17 @@ public class BasicHttpClient {
 		return responseResult;
 	}
 	
+	private void init() {
+		this.responseResult = new HttpResponseResult();
+		lastCRLF = false;
+		/**body 解析完了吗？*/
+		bodyParseOver = false;
+		/**body中chuck 大小*/
+		lastChunkLength = -1;
+		/**response ContentLength 大小*/
+		contentLength = -1;
+	}
+
 	/**
 	 * 关闭http 连接
 	 */
