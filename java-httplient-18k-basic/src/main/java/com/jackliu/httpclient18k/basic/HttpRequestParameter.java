@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.net.ssl.SSLContext;
+
 import com.jackliu.httpclient18k.basic.util.NameValuePair;
 
 public class HttpRequestParameter {
@@ -42,13 +44,14 @@ public class HttpRequestParameter {
 	/**bodyString charset*/
 	private String bodyStringCharSet = "utf-8";
 	
+	/**http 请求报文*/
 	private byte[] bodyBytes;
 	
 	/**host*/
 	private String host;
 	
 	/**host port*/
-	private int port = 80;
+	private int port = 80; //默认http,80端口
 	
 	/**相对uri*/
 	private String uri;
@@ -59,7 +62,14 @@ public class HttpRequestParameter {
 	/**客户端读流的超时时间，默认为5秒*/
 	private int readTimeOut = 5000;
 	
+	/**编码后的http*/
 	private String HttpBodyString;
+	
+	/**是否为https请求*/
+	private boolean isHttps = false;
+	
+	/***/
+	private SSLContext sslContext;
 	
 	/**
 	 * 构建http 请求报文
@@ -163,11 +173,18 @@ public class HttpRequestParameter {
 		if(getUrl() == null || getUrl().trim().length() < 1){
 			throw new RuntimeException("url为空");
 		}
-		if(!getUrl().startsWith("http://")){
-			throw new RuntimeException("url只支持http://开头");
+		if(!(this.url.startsWith("http://") || this.url.startsWith("https://"))){
+			throw new RuntimeException("url只支持http或者https");
 		}
+		
 		String urlString = url;
-		urlString = urlString.substring(7,urlString.length());
+		if(urlString.startsWith("http://")){
+			urlString = urlString.substring(7,urlString.length());
+		}else if(urlString.startsWith("https://")){
+			urlString = urlString.substring(8,urlString.length());
+			this.isHttps = true;
+		}
+		
 		int start = urlString.indexOf("/");
 		String hostStr = urlString.substring(0, start);
 		int portPosition = hostStr.indexOf(":");
@@ -176,6 +193,7 @@ public class HttpRequestParameter {
 			setPort(Integer.parseInt(hostStr.substring(portPosition+1, hostStr.length())));
 		}else {
 			host = hostStr;
+			this.port = isHttps()?443:80;
 		}
 		uri = urlString.substring(start, urlString.length());
 		
@@ -256,4 +274,25 @@ public class HttpRequestParameter {
 	public void setParams(List<NameValuePair> params) {
 		this.params = params;
 	}
+
+
+	public boolean isHttps() {
+		return isHttps;
+	}
+
+
+	public void setHttps(boolean isHttps) {
+		this.isHttps = isHttps;
+	}
+
+
+	public SSLContext getSslContext() {
+		return sslContext;
+	}
+
+
+	public void setSslContext(SSLContext sslContext) {
+		this.sslContext = sslContext;
+	}
+
 }

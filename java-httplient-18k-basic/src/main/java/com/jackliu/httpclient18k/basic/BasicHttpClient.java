@@ -6,12 +6,30 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.jackliu.httpclient18k.basic.async.CallBack;
+import com.jackliu.httpclient18k.basic.async.IContext;
+import com.jackliu.httpclient18k.basic.async.IContextInner;
+import com.jackliu.httpclient18k.basic.async.impl.DefaultContext;
+import com.jackliu.httpclient18k.basic.async.impl.DefaultContextInner;
 
+
+/**
+ * http client 同步方法入口
+ * @author Administrator
+ *
+ */
 
 public class BasicHttpClient {
-	
+	private static final Logger logger = LoggerFactory.getLogger(BasicHttpClient.class);
 	/**回车*/
 	private static final byte CR = 13;
 	
@@ -56,7 +74,7 @@ public class BasicHttpClient {
 			}
 			parseHeader(buffer,0,length);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("",e);
 		}
 		
 	} 
@@ -123,7 +141,7 @@ public class BasicHttpClient {
 			parseHeader(newBuffer,0,newBuffer.length);
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("",e);
 		}
 		
 	}
@@ -160,14 +178,9 @@ public class BasicHttpClient {
 			System.arraycopy(buffer, 0, result, 0, buffer.length);
 			System.arraycopy(newBuffer, 0, result, buffer.length, length);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("",e);
 		}
 		return result;
-	}
-	
-	//TODO 解析
-	public void parseHeaderByte(byte[] remainByte){
-		
 	}
 	
 	/**
@@ -268,7 +281,7 @@ public class BasicHttpClient {
 			parseHttpBodyTransferEncoding(newBuffer,0,newBuffer.length);
 			return ;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("",e);
 		}
 	}
 	
@@ -293,7 +306,7 @@ public class BasicHttpClient {
 			String hexString = new String(currentByte,"utf-8");
 			lastChunkLength = Integer.parseInt(hexString, 16);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("",e);
 		}
 		
 	}
@@ -322,42 +335,38 @@ public class BasicHttpClient {
 	 * @return
 	 */
 	public Socket getSocket(HttpRequestParameter requestParameter){
-		Socket socket = new Socket();
+		Socket socket = null;
 		try {
-			socket.connect(new InetSocketAddress(requestParameter.getHost(),requestParameter.getPort()), requestParameter.getConnectionTimeOut());
+			if(requestParameter.isHttps()){
+				socket = buildSslSocket(requestParameter);
+			}else {
+				socket = new Socket();
+				socket.connect(new InetSocketAddress(requestParameter.getHost(),requestParameter.getPort()), requestParameter.getConnectionTimeOut());
+			}
 			socket.setTcpNoDelay(true);
 			socket.setSoTimeout(requestParameter.getReadTimeOut());
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("",e);
 		}
 		return socket;
 	}
 	
-//	public void printHttpHeader(){
-//		System.out.println("============print header begin:");
-//		for(String head:headers){
-//			System.out.println(head);
-//			int length = head.indexOf(":");
-//			//TODO http状态行解析
-//			if(length > 1){
-//				headerMap.put(head.substring(0,length), head.substring(length+1,head.length()).trim());
-//			}
-//			
-//		}
-//		System.out.println("============print header end:");
-//	}
-	
-//	public void printBody(){
-//		try {
-//			String bodyStr = new String(bodyInBytes.array(),"utf-8");
-//			System.out.println("==========body string=============" + bodyStr);
-//		} catch (UnsupportedEncodingException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//	}
-	
-	
+	public SSLSocket buildSslSocket(HttpRequestParameter requestParameter){
+		SSLContext sslContenxt = requestParameter.getSslContext();
+		if(null ==sslContenxt){
+			throw new RuntimeException("https请求，请HttpRequestParameter设置sslContenxt");
+		}
+		SSLSocketFactory factory = sslContenxt.getSocketFactory();
+		SSLSocket s = null;
+		try {
+			s = (SSLSocket) factory.createSocket(requestParameter.getHost(), requestParameter.getPort());
+		} catch (UnknownHostException e) {
+			logger.error("",e);
+		} catch (IOException e) {
+			logger.error("",e);
+		} 
+		return s;
+	}
 	
 	public HttpResponseResult execute(HttpRequestParameter requestParameter) throws UnsupportedEncodingException, IOException {
 		init();
@@ -373,6 +382,33 @@ public class BasicHttpClient {
 		this.inputStream = socket.getInputStream();
 		parseHttpResponsePackage();
 		return responseResult;
+	}
+	
+	/**
+	 * 带回调的同步方法执行
+	 * @param requestParameter
+	 * @param callBack
+	 * @return
+	 * @throws Exception
+	 */
+	public HttpResponseResult execute(HttpRequestParameter requestParameter,CallBack callBack) throws Exception {
+		HttpResponseResult result = null;
+		IContextInner contextInner = new DefaultContextInner();
+		IContext context = new DefaultContext(contextInner);
+		try {
+			callBack.onBeforeSend(context);
+			result = this.execute(requestParameter);
+			contextInner.setHttpResponseResult(result);
+			callBack.onSuccess(context);
+		} catch (Exception e) {
+			callBack.onError(context);
+			throw e;
+		}finally{
+			callBack.onComplete(context);
+		}
+		
+		
+		return result;
 	}
 	
 	private void init() {
@@ -394,7 +430,7 @@ public class BasicHttpClient {
 			try {
 				socket.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error("",e);
 			}
 		}
 		
@@ -402,7 +438,7 @@ public class BasicHttpClient {
 			try {
 				inputStream.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error("",e);
 			}
 		}
 		
@@ -410,7 +446,7 @@ public class BasicHttpClient {
 			try {
 				outputStream.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error("",e);
 			}
 		}
 	}

@@ -8,10 +8,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.jackliu.httpclient18k.basic.util.GzipDecompress;
 
 public class HttpResponseResult {
 	
+	private static final Logger logger = LoggerFactory.getLogger(HttpResponseResult.class);
+
 	/**http response header 字段*/
 	private Map<String, String> headerMap = new HashMap<String, String>();
 	
@@ -60,7 +65,7 @@ public class HttpResponseResult {
 					bodyStr = new String(decompressBody,charset);
 					return bodyStr;
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.error("",e);
 				}
 			}
 			
@@ -72,17 +77,22 @@ public class HttpResponseResult {
 	public void printBody(){
 		try {
 			String bodyStr = new String(bodyInBytes.array(),"utf-8");
-			System.out.println("==========body string=============" + bodyStr);
+			if(logger.isDebugEnabled()){
+				logger.debug("==========body string=============" + bodyStr);
+			}
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("",e);
 		}
 	}
 	
 	public void printHttpHeader(){
-		//System.out.println("============print header begin:");
+		if(logger.isDebugEnabled()){
+			logger.debug("============print header begin================");
+		}
 		for(String head:headers){
-			System.out.println(head);
+			if(logger.isDebugEnabled()){
+				logger.debug(head);
+			}
 			int length = head.indexOf(":");
 			//TODO http状态行解析
 			if(length > 1){
@@ -90,7 +100,9 @@ public class HttpResponseResult {
 			}
 			
 		}
-		System.out.println("============print header end:");
+		if(logger.isDebugEnabled()){
+			logger.debug("============print header end================");
+		}
 	}
 
 	public void addHeader(String headerStr) {
