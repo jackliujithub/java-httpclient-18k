@@ -28,17 +28,16 @@ import com.jackliu.httpclient18k.basic.util.NameValuePair;
 public class TestBasicHttpClient {
 
 	/**
-	 * post 方法测试
+	 * post 同步方法测试
 	 */
 	@Test
-	public void testPostExecte() {
+	public void testSyncPost() {
 		BasicHttpClient httpClient = new BasicHttpClient();
 		HttpRequestParameter requestParameter = buildPostRquestParameter();
 		try {
 			HttpResponseResult response = httpClient.execute(requestParameter);
 			// 获得结果
-			System.out.println("========result:==========="
-					+ response.getHttpResponseBody());
+			System.out.println("========result:==========="+ response.getHttpResponseBody());
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -54,7 +53,7 @@ public class TestBasicHttpClient {
 	 * get方法测试 + 长连接请求测试
 	 */
 	@Test
-	public void testGetExecte() {
+	public void testSyncGet() {
 		long start = System.currentTimeMillis();
 		BasicHttpClient httpClient = new BasicHttpClient();
 		HttpRequestParameter requestParameter = new HttpRequestParameter();
@@ -62,7 +61,9 @@ public class TestBasicHttpClient {
 		// requestParameter.setUrl("http://g.alicdn.com/tbc/webww/1.1.7/tstart-min.css");
 		requestParameter.setUrl("http://www.iciba.com/index.php");
 		try {
+			//告诉服务端，客户端支持gzip解压
 			// requestParameter.addHeader("Accept-Encoding", "gzip, deflate");
+			//添加请求参数
 			List<NameValuePair> nameValuePairs = new LinkedList<NameValuePair>();
 			requestParameter.setParams(nameValuePairs);
 			NameValuePair nameValuePair = new NameValuePair("a", "suggestnew");
@@ -71,15 +72,13 @@ public class TestBasicHttpClient {
 			nameValuePairs.add(nameValuePair);
 			HttpResponseResult response = httpClient.execute(requestParameter);
 			// 获得结果
-			System.out.println("========result:==========="
-					+ response.getHttpResponseBody());
+			System.out.println("========result:==========="+ response.getHttpResponseBody());
 
-			/** http 长连接测试 **/
+			/** http 长连接测试，重用httpClient
 			response = httpClient.execute(requestParameter);
 			// 获得结果
-			System.out.println("========result:==========="
-					+ response.getHttpResponseBody());
-
+			System.out.println("========result:==========="+ response.getHttpResponseBody());
+			 **/
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -96,7 +95,7 @@ public class TestBasicHttpClient {
 	 * http 异步请求
 	 */
 	@Test
-	public void testAsynPostExecute() {
+	public void testAsynPost() {
 		AsyncHttpClient httpClient = new AsyncHttpClient();
 		HttpRequestParameter requestParameter = buildPostRquestParameter();
 		try {
@@ -149,10 +148,10 @@ public class TestBasicHttpClient {
 		// 设置url
 		requestParameter.setUrl("http://192.168.192.117:8081/token2.action");
 		// 添加http 头部
-		requestParameter.addHeader("Content-Type",
-				"application/x-www-form-urlencoded");
+		requestParameter.addHeader("Content-Type","application/x-www-form-urlencoded");
 		List<NameValuePair> nameValuePairs = new LinkedList<NameValuePair>();
 		requestParameter.setParams(nameValuePairs);
+		//添加参数
 		NameValuePair nameValuePair = new NameValuePair("accessKey",
 				"a188caaf009839ba200bb55bb8fa38407a595c2a");
 		nameValuePairs.add(nameValuePair);
@@ -163,7 +162,6 @@ public class TestBasicHttpClient {
 		nameValuePairs.add(nameValuePair);
 		nameValuePair = new NameValuePair("plat", "Android");
 		nameValuePairs.add(nameValuePair);
-		// platVersion=4.2&appVersion=1.2.0&hardPlatform=Iphone6%2C1&utcDate=2015-08-14T10%3A49%3A23.684Z&method=post";
 		nameValuePair = new NameValuePair("platVersion", "4.2");
 		nameValuePairs.add(nameValuePair);
 		nameValuePair = new NameValuePair("appVersion", "1.2.0");
@@ -203,10 +201,8 @@ public class TestBasicHttpClient {
 		BasicHttpClient synHttpClient2 = new BasicHttpClient();
 		long start = System.currentTimeMillis();
 		try {
-			HttpResponseResult result1 = synHttpClient1
-					.execute(requestParameter);
-			HttpResponseResult result2 = synHttpClient2
-					.execute(requestParameter);
+			HttpResponseResult result1 = synHttpClient1.execute(requestParameter);
+			HttpResponseResult result2 = synHttpClient2.execute(requestParameter);
 
 			System.out.println("context1:" + result1.getHttpResponseBody());
 			System.out.println("context2:" + result2.getHttpResponseBody());
