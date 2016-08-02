@@ -7,7 +7,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import javax.management.RuntimeErrorException;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -20,6 +24,7 @@ import com.jackliu.httpclient18k.basic.async.IContext;
 import com.jackliu.httpclient18k.basic.async.IContextInner;
 import com.jackliu.httpclient18k.basic.async.impl.DefaultContext;
 import com.jackliu.httpclient18k.basic.async.impl.DefaultContextInner;
+import com.jackliu.httpclient18k.basic.base.ConnectionPoolManager;
 
 
 /**
@@ -57,6 +62,13 @@ public class BasicHttpClient {
 	
 	/**http 应答结果*/
 	private HttpResponseResult responseResult;
+	
+	private HttpRequestParameter requestParameter;
+	
+	private static ConnectionPoolManager connectionPoolManager = new ConnectionPoolManager();
+	
+	/**发生异常重复次数*/
+	private int retryCount = 3;
 	
 	/**
 	 * 开始http 应答包解析
@@ -335,52 +347,34 @@ public class BasicHttpClient {
 	 * @return
 	 */
 	public Socket getSocket(HttpRequestParameter requestParameter){
-		Socket socket = null;
+		return connectionPoolManager.getSocket(requestParameter);
+	}
+	
+	
+	
+	public HttpResponseResult execute(HttpRequestParameter requestParameter){
 		try {
-			if(requestParameter.isHttps()){
-				socket = buildSslSocket(requestParameter);
-			}else {
-				socket = new Socket();
-				socket.connect(new InetSocketAddress(requestParameter.getHost(),requestParameter.getPort()), requestParameter.getConnectionTimeOut());
+			init(requestParameter);
+			byte[] requestPackage = requestParameter.bulidRequestPackage();
+			if(this.socket == null){
+				this.socket = getSocket(requestParameter);
+				socket.setKeepAlive(true);
+				socket.setTcpNoDelay(true);
 			}
-			socket.setTcpNoDelay(true);
-			socket.setSoTimeout(requestParameter.getReadTimeOut());
-		} catch (IOException e) {
-			logger.error("",e);
+			logger.debug("============socket=====" + this.socket.toString());
+			outputStream = socket.getOutputStream();
+			outputStream.write(requestPackage);
+			outputStream.flush();
+			this.inputStream = socket.getInputStream();
+			parseHttpResponsePackage();
+		} catch (Exception e) {
+			logger.error("", e);
+			if(retryCount == 0){
+				throw new RuntimeException(e);
+			}
+			retryCount --;
+			return this.execute(requestParameter);
 		}
-		return socket;
-	}
-	
-	public SSLSocket buildSslSocket(HttpRequestParameter requestParameter){
-		SSLContext sslContenxt = requestParameter.getSslContext();
-		if(null ==sslContenxt){
-			throw new RuntimeException("https请求，请HttpRequestParameter设置sslContenxt");
-		}
-		SSLSocketFactory factory = sslContenxt.getSocketFactory();
-		SSLSocket s = null;
-		try {
-			s = (SSLSocket) factory.createSocket(requestParameter.getHost(), requestParameter.getPort());
-		} catch (UnknownHostException e) {
-			logger.error("",e);
-		} catch (IOException e) {
-			logger.error("",e);
-		} 
-		return s;
-	}
-	
-	public HttpResponseResult execute(HttpRequestParameter requestParameter) throws UnsupportedEncodingException, IOException {
-		init();
-		byte[] requestPackage = requestParameter.bulidRequestPackage();
-		if(this.socket == null){
-			this.socket = getSocket(requestParameter);
-			socket.setKeepAlive(true);
-			socket.setTcpNoDelay(true);
-		}
-		outputStream = socket.getOutputStream();
-		outputStream.write(requestPackage);
-		outputStream.flush();
-		this.inputStream = socket.getInputStream();
-		parseHttpResponsePackage();
 		return responseResult;
 	}
 	
@@ -411,7 +405,8 @@ public class BasicHttpClient {
 		return result;
 	}
 	
-	private void init() {
+	private void init(HttpRequestParameter requestParameter) {
+		this.requestParameter = requestParameter;
 		this.responseResult = new HttpResponseResult();
 		lastCRLF = false;
 		/**body 解析完了吗？*/
@@ -425,7 +420,22 @@ public class BasicHttpClient {
 	/**
 	 * 关闭http 连接
 	 */
-	public void close(){
+	public void releaseConnection(){
+		String connection = this.responseResult.getHeader("Connection");
+		if(connection == null || connection.equals("close")){
+			closeSocket();
+			return;
+		}else {
+			connectionPoolManager.releaseConnection(socket, this.requestParameter);
+		}
+		this.socket = null;
+		
+	}
+	
+	/**
+	 * 关闭socket
+	 */
+	private void closeSocket() {
 		if(socket != null){
 			try {
 				socket.close();

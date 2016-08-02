@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.LinkedList;
@@ -45,7 +44,7 @@ public class TestBasicHttpClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			httpClient.close();// 如果是长连接，可以重用BasicHttpClient
+			httpClient.releaseConnection();// 如果是长连接，可以重用BasicHttpClient
 		}
 	}
 
@@ -71,14 +70,16 @@ public class TestBasicHttpClient {
 			nameValuePair = new NameValuePair("s", "%E5%BC%82%E6%AD%A5");
 			nameValuePairs.add(nameValuePair);
 			HttpResponseResult response = httpClient.execute(requestParameter);
+			httpClient.releaseConnection();
 			// 获得结果
 			System.out.println("========result:==========="+ response.getHttpResponseBody());
 
-			/** http 长连接测试，重用httpClient
+			/** http 长连接测试，重用httpClient**/
 			response = httpClient.execute(requestParameter);
+			httpClient.releaseConnection();
 			// 获得结果
 			System.out.println("========result:==========="+ response.getHttpResponseBody());
-			 **/
+			 
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -86,7 +87,7 @@ public class TestBasicHttpClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			httpClient.close();
+			
 		}
 		System.out.println("cast:" + (System.currentTimeMillis() - start));
 	}
@@ -216,10 +217,10 @@ public class TestBasicHttpClient {
 			e1.printStackTrace();
 		}finally{
 			if(null != synHttpClient1){
-				synHttpClient1.close();
+				synHttpClient1.releaseConnection();
 			}
 			if(null != synHttpClient2){
-				synHttpClient2.close();
+				synHttpClient2.releaseConnection();
 			}
 		}
 		// { 同步调用end
@@ -303,9 +304,54 @@ public class TestBasicHttpClient {
 			e.printStackTrace();
 		}finally{
 			if(null != synHttpClient1){
-				synHttpClient1.close();
+				synHttpClient1.releaseConnection();
 			}
 		}
-
+	}
+	
+	
+	private void testSyncGetNoRealease() {
+		long start = System.currentTimeMillis();
+		BasicHttpClient httpClient = new BasicHttpClient();
+		HttpRequestParameter requestParameter = new HttpRequestParameter();
+		requestParameter.setMethod(HttpRequestParameter.METHOD_GET);
+		// requestParameter.setUrl("http://g.alicdn.com/tbc/webww/1.1.7/tstart-min.css");
+		requestParameter.setUrl("http://www.iciba.com/index.php");
+		try {
+			//告诉服务端，客户端支持gzip解压
+			// requestParameter.addHeader("Accept-Encoding", "gzip, deflate");
+			//添加请求参数
+			List<NameValuePair> nameValuePairs = new LinkedList<NameValuePair>();
+			requestParameter.setParams(nameValuePairs);
+			NameValuePair nameValuePair = new NameValuePair("a", "suggestnew");
+			nameValuePairs.add(nameValuePair);
+			nameValuePair = new NameValuePair("s", "%E5%BC%82%E6%AD%A5");
+			nameValuePairs.add(nameValuePair);
+			HttpResponseResult response = httpClient.execute(requestParameter);
+			// 获得结果
+			System.out.println("========result:==========="+ response.getHttpResponseBody());
+			//不释放连接
+			//httpClient.releaseConnection();
+			
+			 
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+		}
+		System.out.println("cast:" + (System.currentTimeMillis() - start));
+	}
+	
+	
+	/***
+	 * get方法测试 + 长连接请求测试
+	 */
+	@Test
+	public void testConnectionPoolsSyncGet(){
+		testSyncGetNoRealease();
+		testSyncGetNoRealease();
 	}
 }

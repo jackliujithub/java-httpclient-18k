@@ -63,7 +63,7 @@ public class AsyncHttpClient {
 					callBack.onError(context);
 				}finally{
 					if(null != httpClient){
-						httpClient.close();
+						httpClient.releaseConnection();
 					}
 					callBack.onComplete(context);
 				}
@@ -93,7 +93,7 @@ public class AsyncHttpClient {
 					return context;
 				} finally{
 					if(null != httpClient){
-						httpClient.close();
+						httpClient.releaseConnection();
 					}
 				}
 			}

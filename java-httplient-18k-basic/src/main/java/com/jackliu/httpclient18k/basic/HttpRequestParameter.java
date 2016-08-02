@@ -295,4 +295,7 @@ public class HttpRequestParameter {
 		this.sslContext = sslContext;
 	}
 
+	public void setHttpBodyString(String httpBodyString){
+		this.HttpBodyString = httpBodyString;
+	}
 }
