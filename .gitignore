@@ -1,3 +1,6 @@
 *.project
 *.prefs
 *.classpath
+/.idea/
+/java-httplient-18k.iml
+/java-httplient-18k-basic/java-httplient-18k-basic.iml
