@@ -47,7 +47,6 @@ public class TestBasicHttpClient {
 			httpClient.releaseConnection();// 如果是长连接，可以重用BasicHttpClient
 		}
 
-
 	}
 
 	/***
